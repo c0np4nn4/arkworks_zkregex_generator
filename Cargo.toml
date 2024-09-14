@@ -1,0 +1,20 @@
+[package]
+name = "arkworks_regex_circuit"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ark-std = "0.4"
+ark-relations = "0.4"
+ark-r1cs-std = "0.4"
+ark-snark = "0.4"
+ark-ff = "0.4"
+ark-ec = "0.4"
+ark-bn254 = "0.4"
+ark-groth16 = "0.4"
+rand = "0.8"
+regex-automata = "=0.4.7"
+regex = "=1.10.6"
+serde_json = "1.0.95"
+serde = { version = "1.0.159", features = ["derive"] }
+thiserror = "1.0.40"
