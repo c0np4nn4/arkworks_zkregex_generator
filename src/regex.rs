@@ -1020,8 +1020,8 @@ fn create_dfa_graph_from_regex(regex: &str) -> Result<DFAGraph, CompilerError> {
             source: e,
         })?;
 
-    println!("[1] dfa:   {:?}", dfa.clone());
-    println!("[2] graph: {:#?}", convert_dfa_to_graph(dfa.clone()));
+    // println!("[1] dfa:   {:?}", dfa.clone());
+    // println!("[2] graph: {:#?}", convert_dfa_to_graph(dfa.clone()));
 
     convert_dfa_to_graph(dfa)
 }

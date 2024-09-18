@@ -1,4 +1,4 @@
-use crate::structs::DFAGraph; // 필요한 struct 임포트
+use crate::{handlers::{handle_char_class_rule, handle_plus_rule, handle_question_mark_rule, handle_star_rule}, structs::DFAGraph}; // 필요한 struct 임포트
 
 /// Generates the complete Arkworks circuit as a string in Rust.
 pub fn gen_arkworks_allstr(
@@ -9,6 +9,7 @@ pub fn gen_arkworks_allstr(
 ) -> String {
     let state_len = dfa_graph.states.len();
 
+    // (1)
     let declarations = generate_declarations_arkworks(
         struct_name,
         regex_str,
@@ -16,17 +17,20 @@ pub fn gen_arkworks_allstr(
         end_anchor,
     );
 
+    // (2)
     let init_code = generate_init_code_arkworks(state_len);
 
+    // (3)
     let transition_logic = generate_state_transition_logic_arkworks(dfa_graph, state_len, end_anchor);
 
+    // (4)
     let accept_logic = generate_accept_logic_arkworks(dfa_graph, end_anchor);
 
     let final_code = [
-        declarations,
-        init_code,
-        transition_logic,
-        accept_logic,
+        declarations, //////// (1)
+        init_code, /////////// (2)
+        transition_logic, //// (3)
+        accept_logic, //////// (4)
     ].concat();
 
     final_code.join("\n")
@@ -73,6 +77,100 @@ fn generate_init_code_arkworks(state_len: usize) -> Vec<String> {
     ]
 }
 
+// fn generate_state_transition_logic_arkworks(
+//     dfa_graph: &DFAGraph,
+//     _state_len: usize,
+//     end_anchor: bool,
+// ) -> Vec<String> {
+//     let mut lines = vec![];
+
+//     // Calculate the minimum length based on the shortest path from the initial state to any accept state
+//     let min_length = calculate_min_length(&dfa_graph);
+//     let max_length = dfa_graph.states.len(); // 기본적으로 DFA의 모든 상태 수를 최대 길이로 설정
+
+//     lines.push(format!(
+//         "\t\tif input_vars.len() < {} || input_vars.len() > {} {{",
+//         min_length, max_length
+//     ));
+//     lines.push("\t\t\tvalid = Boolean::constant(false);".to_string());
+//     lines.push("\t\t} else {".to_string());
+
+//     // Initialize states: Start from the initial state (assumed to be state 0)
+//     lines.push("\t\t\tlet mut current_state = FpVar::constant(F::from(0u64));".to_string());
+//     lines.push("".to_string());
+
+//     // Iterate over the input variables and generate transition logic
+//     for i in 0..max_length {
+//         lines.push(format!("\t\t\t// Transition logic for input index {}", i));
+//         lines.push(format!("\t\t\tif input_vars.len() > {} {{", i));
+//         lines.push(format!("\t\t\t\tlet current_input = &input_vars[{}];", i));
+
+//         // Generate transition logic based on DFA graph for each state
+//         lines.push("\t\t\t\tlet mut next_state = None;".to_string());
+
+//         // For each state, define transitions based on the DFA graph
+//         for state in &dfa_graph.states {
+//             let from_state = state.state_id;
+//             for (&to_state, char_set) in &state.transitions {
+//                 // Create transition checks for each edge
+//                 for &byte in char_set {
+//                     lines.push(format!(
+//                         "\t\t\t\tif current_state.is_eq(&FpVar::constant(F::from({}u64)))? && current_input.is_eq(&FpVar::constant(F::from({}u64)))? {{",
+//                         from_state, byte
+//                     ));
+//                     lines.push(format!(
+//                         "\t\t\t\t\tnext_state = Some(FpVar::constant(F::from({}u64)));",
+//                         to_state
+//                     ));
+//                     lines.push("\t\t\t\t}".to_string());
+//                 }
+//             }
+//         }
+
+//         // Update the current state if a valid transition exists
+//         lines.push("\t\t\t\tif let Some(next) = next_state {".to_string());
+//         lines.push("\t\t\t\t\tcurrent_state = next;".to_string());
+//         lines.push("\t\t\t\t} else {".to_string());
+//         lines.push("\t\t\t\t\tvalid = Boolean::constant(false);".to_string());
+//         lines.push("\t\t\t\t}".to_string());
+
+//         lines.push("\t\t\t}".to_string());
+//         lines.push("".to_string());
+//     }
+
+//     // Check final state acceptance if end anchor is required
+//     if end_anchor {
+//         lines.push("\t\t\t// Check if the final state is an accepting state with end anchor".to_string());
+//         let accept_states: Vec<_> = dfa_graph.states.iter()
+//             .filter(|s| s.state_type == "accept")
+//             .map(|s| s.state_id)
+//             .collect();
+//         for &accept_state in &accept_states {
+//             lines.push(format!(
+//                 "\t\t\tvalid = valid.and(&current_state.is_eq(&FpVar::constant(F::from({}u64)))?)?;",
+//                 accept_state
+//             ));
+//         }
+//     } else {
+//         lines.push("\t\t\t// No end anchor, check any valid accepting state".to_string());
+//         let accept_states: Vec<_> = dfa_graph.states.iter()
+//             .filter(|s| s.state_type == "accept")
+//             .map(|s| s.state_id)
+//             .collect();
+//         lines.push("\t\t\tlet mut is_accepting = Boolean::constant(false);".to_string());
+//         for &accept_state in &accept_states {
+//             lines.push(format!(
+//                 "\t\t\tis_accepting = is_accepting.or(&current_state.is_eq(&FpVar::constant(F::from({}u64)))?)?;",
+//                 accept_state
+//             ));
+//         }
+//         lines.push("\t\t\tvalid = valid.and(&is_accepting)?;".to_string());
+//     }
+
+//     lines.push("\t\t}".to_string());
+//     lines
+// }
+
 fn generate_state_transition_logic_arkworks(
     dfa_graph: &DFAGraph,
     _state_len: usize,
@@ -108,17 +206,15 @@ fn generate_state_transition_logic_arkworks(
         for state in &dfa_graph.states {
             let from_state = state.state_id;
             for (&to_state, char_set) in &state.transitions {
-                // Create transition checks for each edge
-                for &byte in char_set {
-                    lines.push(format!(
-                        "\t\t\t\tif current_state.is_eq(&FpVar::constant(F::from({}u64)))? && current_input.is_eq(&FpVar::constant(F::from({}u64)))? {{",
-                        from_state, byte
-                    ));
-                    lines.push(format!(
-                        "\t\t\t\t\tnext_state = Some(FpVar::constant(F::from({}u64)));",
-                        to_state
-                    ));
-                    lines.push("\t\t\t\t}".to_string());
+                // Decide which rule applies and call the corresponding helper function
+                if char_set.contains(&b'+') {
+                    lines.extend(handle_plus_rule(from_state, to_state, char_set));
+                } else if char_set.contains(&b'*') {
+                    lines.extend(handle_star_rule(from_state, to_state, char_set));
+                } else if char_set.contains(&b'?') {
+                    lines.extend(handle_question_mark_rule(from_state, to_state, char_set));
+                } else {
+                    lines.extend(handle_char_class_rule(from_state, to_state, char_set));
                 }
             }
         }

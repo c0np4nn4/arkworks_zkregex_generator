@@ -32,23 +32,31 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for RegexCircuit<F> {
 			if input_vars.len() > 0 {
 				let current_input = &input_vars[0];
 				let mut next_state = None;
-				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? && current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
-					next_state = Some(FpVar::constant(F::from(1u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
+						next_state = Some(FpVar::constant(F::from(1u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
-					next_state = Some(FpVar::constant(F::from(3u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
+						next_state = Some(FpVar::constant(F::from(3u64)));
+					}
 				}
 				if let Some(next) = next_state {
 					current_state = next;
@@ -61,23 +69,31 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for RegexCircuit<F> {
 			if input_vars.len() > 1 {
 				let current_input = &input_vars[1];
 				let mut next_state = None;
-				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? && current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
-					next_state = Some(FpVar::constant(F::from(1u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
+						next_state = Some(FpVar::constant(F::from(1u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
-					next_state = Some(FpVar::constant(F::from(3u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
+						next_state = Some(FpVar::constant(F::from(3u64)));
+					}
 				}
 				if let Some(next) = next_state {
 					current_state = next;
@@ -90,23 +106,31 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for RegexCircuit<F> {
 			if input_vars.len() > 2 {
 				let current_input = &input_vars[2];
 				let mut next_state = None;
-				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? && current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
-					next_state = Some(FpVar::constant(F::from(1u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
+						next_state = Some(FpVar::constant(F::from(1u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
-					next_state = Some(FpVar::constant(F::from(3u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
+						next_state = Some(FpVar::constant(F::from(3u64)));
+					}
 				}
 				if let Some(next) = next_state {
 					current_state = next;
@@ -119,23 +143,31 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for RegexCircuit<F> {
 			if input_vars.len() > 3 {
 				let current_input = &input_vars[3];
 				let mut next_state = None;
-				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? && current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
-					next_state = Some(FpVar::constant(F::from(1u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(0u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(97u64)))? {
+						next_state = Some(FpVar::constant(F::from(1u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(1u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
+					if current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
+						next_state = Some(FpVar::constant(F::from(2u64)));
+					}
 				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(98u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(99u64)))? {
-					next_state = Some(FpVar::constant(F::from(2u64)));
-				}
-				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? && current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
-					next_state = Some(FpVar::constant(F::from(3u64)));
+				if current_state.is_eq(&FpVar::constant(F::from(2u64)))? {
+					if current_input.is_eq(&FpVar::constant(F::from(100u64)))? {
+						next_state = Some(FpVar::constant(F::from(3u64)));
+					}
 				}
 				if let Some(next) = next_state {
 					current_state = next;

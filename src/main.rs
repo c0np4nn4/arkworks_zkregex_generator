@@ -8,6 +8,7 @@ mod structs;
 mod regex;
 mod errors;
 mod arkworks;
+mod handlers;
 
 
 fn main() {
@@ -17,12 +18,17 @@ fn main() {
 
     // Placeholder SubstringDefinitionsJson; replace with actual data
     let substr_defs_json = SubstringDefinitionsJson {
-        transitions: vec![vec![(0, 1), (1, 2)]],
+        transitions: vec![vec![(1, 2)]],
     };
 
     // Create RegexAndDFA from regex string
-    match create_regex_and_dfa_from_str_and_defs(regex_str, substr_defs_json) {
+    match create_regex_and_dfa_from_str_and_defs(//
+        regex_str, 
+        substr_defs_json
+    ) {
         Ok(regex_and_dfa) => {
+            println!("regex and dfa: {:#?}", regex_and_dfa);
+
             // Generate Rust code for Arkworks circuit
             let rust_code = gen_arkworks_allstr(//
                 &regex_and_dfa.dfa, 
