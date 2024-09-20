@@ -7,19 +7,23 @@ use rand::rngs::OsRng;
 mod generated_circuit;
 use crate::generated_circuit::RegexCircuit;
 
+const MAX_LEN: usize = 256;
+
 
 fn main() {
-    // "abcbcd"
+    // "abcd"
     let input: Vec<Fr> = vec![97, 98, 99, 100].into_iter().map(|x| {Fr::from(x)}).collect();
 
     // Define the circuit with the correct maximum length
-    let circuit = RegexCircuit { input, max_len: 8 };
+    let circuit = RegexCircuit { input, max_len: MAX_LEN };
 
     // Prove and verify the circuit
     let mut rng = OsRng;
 
     // Setup proving and verifying keys
-    let (pk, vk): (ProvingKey<Bn254>, VerifyingKey<Bn254>) = Groth16::<Bn254, LibsnarkReduction>::circuit_specific_setup(circuit.clone(), &mut rng).unwrap();
+    let (pk, vk): (ProvingKey<Bn254>, VerifyingKey<Bn254>) = Groth16::<Bn254, LibsnarkReduction>::circuit_specific_setup(
+        circuit.clone(), &mut rng
+    ).unwrap();
 
     // Prove for the input circuit
     let proof: Proof<Bn254> = Groth16::<Bn254, LibsnarkReduction>::prove(&pk, circuit, &mut rng).unwrap();
@@ -31,10 +35,10 @@ fn main() {
         Fr::from(99u64), 
         Fr::from(100u64), 
     ];
-    padded_inputs.resize(8, Fr::from(0u64)); // Ensure padded length matches
+    padded_inputs.resize(MAX_LEN, Fr::from(0u64)); // Ensure padded length matches
 
     // Verify the proof with correct inputs
-    let is_valid = Groth16::<Bn254, LibsnarkReduction>::verify(&vk, &padded_inputs, &proof).unwrap();
+    let is_valid = Groth16::<Bn254, LibsnarkReduction>::verify(&pk.vk, &padded_inputs, &proof).unwrap();
 
     println!("Verification result: {}", is_valid);
 }

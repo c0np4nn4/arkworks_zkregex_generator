@@ -75,7 +75,7 @@ fn main() {
     // let input: Vec<Fr> = vec![1u64, 2, 3, 2, 3, 4].into_iter().map(|x| {Fr::from(x)}).collect();
 
     // "abcbcd"
-    let input: Vec<Fr> = vec![1u64, 2, 3, 2, 3, 4].into_iter().map(|x| {Fr::from(x)}).collect();
+    let input: Vec<Fr> = vec![1u64, 2, 3, 2, 4].into_iter().map(|x| {Fr::from(x)}).collect();
 
     // Define the circuit with the correct maximum length
     let circuit = RegexCircuit { input: input.clone(), max_len: 8 };
@@ -92,10 +92,13 @@ fn main() {
     // Inputs must match the padded length
     let mut padded_inputs = vec![ //
         Fr::from(1u64), 
+
         Fr::from(2u64), 
         Fr::from(3u64), 
+
         Fr::from(2u64), 
         Fr::from(3u64), 
+
         Fr::from(4u64)
     ];
     padded_inputs.resize(8, Fr::from(0u64)); // Ensure padded length matches

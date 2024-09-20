@@ -52,35 +52,34 @@ fn generate_declarations_arkworks(
         "use ark_r1cs_std::eq::EqGadget;".to_string(),
         "".to_string(),
         format!("/// Regex: {}", regex_str.replace('\n', "\\n").replace('\r', "\\r")),
-        format!("#[derive(Clone)]\nstruct {}<F: PrimeField> {{", struct_name),
-        "\tinput: Vec<F>,".to_string(),
-        "\tmax_len: usize,".to_string(),
+        format!("#[derive(Clone)]\npub struct {}<F: PrimeField> {{", struct_name),
+        format!("{}pub input: Vec<F>,", put_space(1)),
+        format!("{}pub max_len: usize,", put_space(1)),
         "}\n".to_string(),
         format!("impl<F: PrimeField> ConstraintSynthesizer<F> for {}<F> {{", struct_name),
-        "\tfn generate_constraints(self, cs: ConstraintSystemRef<F>) -> Result<(), SynthesisError> {".to_string(),
+        format!("{}fn generate_constraints(self, cs: ConstraintSystemRef<F>) -> Result<(), SynthesisError> {{", put_space(1)),
     ];
 
-    declarations.push("\t\t// Add state initialization logic here".to_string());
+    declarations.push(format!("{}// Add state initialization logic here", put_space(2)));
 
     declarations
 }
 
 fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> {
     vec![
-        "\t\t// Initialize and pad input variables".to_string(),
-        "\t\tlet mut padded_input = self.input.clone();".to_string(),
-        format!("\t\tpadded_input.resize({}, F::from(0u64));", max_len),
-        "\t\tlet input_vars = padded_input".to_string(),
-        "\t\t\t.into_iter()".to_string(),
-        "\t\t\t.map(|v| FpVar::new_input(cs.clone(), || Ok(v)))".to_string(),
-        "\t\t\t.collect::<Result<Vec<_>, _>>()?;".to_string(),
-        "\t\tlet mut valid = Boolean::constant(true);".to_string(),
+        format!("{}// Initialize and pad input variables", put_space(2)),
+        format!("{}let mut padded_input = self.input.clone();", put_space(2)),
+        format!("{}padded_input.resize({}, F::from(0u64));", put_space(2), max_len),
+        format!("{}let input_vars = padded_input", put_space(2)),
+        format!("{}  .into_iter()", put_space(2)),
+        format!("{}  .map(|v| FpVar::new_input(cs.clone(), || Ok(v)))", put_space(2)),
+        format!("{}  .collect::<Result<Vec<_>, _>>()?;", put_space(2)),
+        format!("{}let mut valid = Boolean::constant(true);", put_space(2)),
         "".to_string(),
-        format!("\t\t// Initialize state variables ({} states)", state_len),
+        format!("{}// Initialize state variables ({} states)", put_space(2), state_len),
     ]
 }
 
-// /// Generates the state transition logic for the Arkworks circuit in Rust.
 // fn generate_state_transition_logic_arkworks(
 //     dfa_graph: &DFAGraph,
 //     _state_len: usize,
@@ -89,13 +88,13 @@ fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> 
 //     let mut lines = vec![];
 
 //     // 현재 상태 변수 초기화 (초기 상태는 DFA의 시작 상태, 일반적으로 state_id 0)
-//     lines.push("\t\t// 현재 상태 초기화".to_string());
-//     lines.push("\t\tlet mut current_state = FpVar::constant(F::from(0u64));".to_string()); // 초기 상태 설정
+//     lines.push(format!("{}// 현재 상태 초기화", put_space(2)));
+//     lines.push(format!("{}let mut current_state = FpVar::constant(F::from(0u64));", put_space(2))); // 초기 상태 설정
 
 //     // 기본 상태 전이 로직을 추가
-//     lines.push("\t\t// 각 입력 인덱스에 대한 전이 로직".to_string());
-//     lines.push("\t\tfor current_input in input_vars.iter() {".to_string());
-//     lines.push("\t\t\tlet mut next_state = current_state.clone();".to_string());
+//     lines.push(format!("{}// 각 입력 인덱스에 대한 전이 로직", put_space(2)));
+//     lines.push(format!("{}for current_input in input_vars.iter() {{", put_space(2)));
+//     lines.push(format!("{}let mut next_state = current_state.clone();", put_space(3)));
 
 //     // DFA 그래프에서 각 상태와 전이에 대해 로직 생성
 //     let mut condition_counter = 0; // 고유한 조건 변수명을 만들기 위한 카운터
@@ -104,87 +103,10 @@ fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> 
 
 //         // 현재 상태 조건 추가
 //         lines.push(format!(
-//             "\t\t\tlet is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
-//             from_state, from_state
-//         ));
-
-//         for (&to_state, char_set) in &state.transitions {
-//             // 각 문자의 조건을 추가 (변수명 중복 방지를 위해 고유한 이름 부여)
-//             condition_counter += 1;
-//             let condition_var = format!("cond_{}", condition_counter);
-
-//             let conditions = char_set
-//                 .iter()
-//                 .map(|&c| format!("current_input.is_eq(&FpVar::constant(F::from({}u64)))?", c))
-//                 .collect::<Vec<_>>()
-//                 .join(" || ");
-//             
-//             lines.push(format!(
-//                 "\t\t\tlet {} = is_state_{}.and(&({}))?;", 
-//                 condition_var, from_state, conditions
-//             ));
-
-//             // 상태 전이 로직 추가
-//             lines.push(format!(
-//                 "\t\t\tnext_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
-//                 condition_var, to_state
-//             ));
-//         }
-//     }
-
-//     // 상태가 변경되었는지 확인
-//     lines.push("\t\t\tlet state_changed = current_state.is_eq(&next_state)?.not();".to_string());
-//     lines.push("\t\t\tvalid = valid.and(&state_changed)?;".to_string());
-
-//     // 다음 상태로 업데이트
-//     lines.push("\t\t\tcurrent_state = next_state;".to_string());
-//     lines.push("\t\t}".to_string());
-
-//     // 수락 상태 확인
-//     if end_anchor {
-//         lines.push("\t\t// 종료 상태 확인".to_string());
-//         let accept_states: Vec<_> = dfa_graph
-//             .states
-//             .iter()
-//             .filter(|s| s.state_type == "accept")
-//             .map(|s| s.state_id)
-//             .collect();
-
-//         for &accept_state in &accept_states {
-//             lines.push(format!(
-//                 "\t\tlet is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
-//                 accept_state
-//             ));
-//             lines.push("\t\tvalid = valid.and(&is_accepting)?;".to_string());
-//         }
-//     }
-
-//     lines
-// }
-
-
-// /// Generates the state transition logic for the Arkworks circuit in Rust.
-// fn generate_state_transition_logic_arkworks(
-//     dfa_graph: &DFAGraph,
-//     _state_len: usize,
-//     end_anchor: bool,
-// ) -> Vec<String> {
-//     let mut lines = vec![];
-
-//     // 기본 상태 전이 로직을 추가
-//     lines.push("\t\t// 각 입력 인덱스에 대한 전이 로직".to_string());
-//     lines.push("\t\tfor current_input in input_vars.iter() {".to_string());
-//     lines.push("\t\t\tlet mut next_state = current_state.clone();".to_string());
-
-//     // DFA 그래프에서 각 상태와 전이에 대해 로직 생성
-//     let mut condition_counter = 0; // 고유한 조건 변수명을 만들기 위한 카운터
-//     for state in &dfa_graph.states {
-//         let from_state = state.state_id;
-
-//         // 현재 상태 조건 추가
-//         lines.push(format!(
-//             "\t\t\tlet is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
-//             from_state, from_state
+//             "{}let is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//             put_space(3),
+//             from_state,
+//             from_state
 //         ));
 
 //         for (&to_state, char_set) in &state.transitions {
@@ -200,10 +122,10 @@ fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> 
 
 //             // 여러 조건을 하나로 합치는 논리 연산 처리
 //             let or_conditions = if conditions.len() > 1 {
-//                 let mut combined_condition = format!("{}{}", conditions[0], "?");
+//                 let mut combined_condition = format!("{}", conditions[0]);
 //                 for condition in &conditions[1..] {
 //                     combined_condition = format!(
-//                         "{}.or(&{}?)?", 
+//                         "{}.or({})?", 
 //                         combined_condition, 
 //                         condition
 //                     );
@@ -214,29 +136,34 @@ fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> 
 //             };
 
 //             lines.push(format!(
-//                 "\t\t\tlet {} = is_state_{}.and(&({}))?;", 
-//                 condition_var, from_state, or_conditions
+//                 "{}let {} = is_state_{}.and(&({}))?;", 
+//                 put_space(3),
+//                 condition_var, 
+//                 from_state, 
+//                 or_conditions
 //             ));
 
 //             // 상태 전이 로직 추가
 //             lines.push(format!(
-//                 "\t\t\tnext_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
-//                 condition_var, to_state
+//                 "{}next_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
+//                 put_space(3),
+//                 condition_var,
+//                 to_state
 //             ));
 //         }
 //     }
 
 //     // 상태가 변경되었는지 확인
-//     lines.push("\t\t\tlet state_changed = current_state.is_eq(&next_state)?.not();".to_string());
-//     lines.push("\t\t\tvalid = valid.and(&state_changed)?;".to_string());
+//     lines.push(format!("{}let state_changed = current_state.is_eq(&next_state)?.not();", put_space(3)));
+//     lines.push(format!("{}valid = valid.and(&state_changed)?;", put_space(3)));
 
 //     // 다음 상태로 업데이트
-//     lines.push("\t\t\tcurrent_state = next_state;".to_string());
-//     lines.push("\t\t}".to_string());
+//     lines.push(format!("{}current_state = next_state;", put_space(3)));
+//     lines.push(format!("{}}}", put_space(2)));
 
 //     // 수락 상태 확인
 //     if end_anchor {
-//         lines.push("\t\t// 종료 상태 확인".to_string());
+//         lines.push(format!("{}// 종료 상태 확인", put_space(2)));
 //         let accept_states: Vec<_> = dfa_graph
 //             .states
 //             .iter()
@@ -246,17 +173,18 @@ fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> 
 
 //         for &accept_state in &accept_states {
 //             lines.push(format!(
-//                 "\t\tlet is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//                 "{}let is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//                 put_space(3),
 //                 accept_state
 //             ));
-//             lines.push("\t\tvalid = valid.and(&is_accepting)?;".to_string());
+//             lines.push(format!("{}valid = valid.and(&is_accepting)?;", put_space(3)));
 //         }
 //     }
 
 //     lines
 // }
+//
 
-/// Generates the state transition logic for the Arkworks circuit in Rust.
 fn generate_state_transition_logic_arkworks(
     dfa_graph: &DFAGraph,
     _state_len: usize,
@@ -265,13 +193,13 @@ fn generate_state_transition_logic_arkworks(
     let mut lines = vec![];
 
     // 현재 상태 변수 초기화 (초기 상태는 DFA의 시작 상태, 일반적으로 state_id 0)
-    lines.push(format!("{}// 현재 상태 초기화", put_space(1)));
-    lines.push(format!("{}let mut current_state = FpVar::constant(F::from(0u64));", put_space(1))); // 초기 상태 설정
+    lines.push(format!("{}// 현재 상태 초기화", put_space(2)));
+    lines.push(format!("{}let mut current_state = FpVar::constant(F::from(0u64));", put_space(2))); // 초기 상태 설정
 
     // 기본 상태 전이 로직을 추가
-    lines.push(format!("{}// 각 입력 인덱스에 대한 전이 로직", put_space(1)));
-    lines.push(format!("{}for current_input in input_vars.iter() {{", put_space(1)));
-    lines.push(format!("{}let mut next_state = current_state.clone();", put_space(2)));
+    lines.push(format!("{}// 각 입력 인덱스에 대한 전이 로직", put_space(2)));
+    lines.push(format!("{}for current_input in input_vars.iter() {{", put_space(2)));
+    lines.push(format!("{}let mut next_state = current_state.clone();", put_space(3)));
 
     // DFA 그래프에서 각 상태와 전이에 대해 로직 생성
     let mut condition_counter = 0; // 고유한 조건 변수명을 만들기 위한 카운터
@@ -281,7 +209,7 @@ fn generate_state_transition_logic_arkworks(
         // 현재 상태 조건 추가
         lines.push(format!(
             "{}let is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
-            put_space(2),
+            put_space(3),
             from_state,
             from_state
         ));
@@ -299,22 +227,22 @@ fn generate_state_transition_logic_arkworks(
 
             // 여러 조건을 하나로 합치는 논리 연산 처리
             let or_conditions = if conditions.len() > 1 {
-                let mut combined_condition = format!("{}", conditions[0]);
+                let mut combined_condition = format!("&{}", conditions[0]);  // 참조 추가
                 for condition in &conditions[1..] {
                     combined_condition = format!(
-                        "{}.or({})?", 
+                        "{}.or(&{})?", 
                         combined_condition, 
-                        condition
+                        condition  // 참조로 변경
                     );
                 }
                 combined_condition
             } else {
-                conditions[0].clone() // 하나의 조건일 때는 그냥 조건 그대로 사용
+                format!("&{}", conditions[0]) // 참조 추가
             };
 
             lines.push(format!(
-                "{}let {} = is_state_{}.and(&({}))?;", 
-                put_space(2),
+                "{}let {} = is_state_{}.and({})?;",  // 참조 추가된 `or_conditions`
+                put_space(3),
                 condition_var, 
                 from_state, 
                 or_conditions
@@ -323,7 +251,7 @@ fn generate_state_transition_logic_arkworks(
             // 상태 전이 로직 추가
             lines.push(format!(
                 "{}next_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
-                put_space(2),
+                put_space(3),
                 condition_var,
                 to_state
             ));
@@ -331,16 +259,16 @@ fn generate_state_transition_logic_arkworks(
     }
 
     // 상태가 변경되었는지 확인
-    lines.push(format!("{}let state_changed = current_state.is_eq(&next_state)?.not();", put_space(2)));
-    lines.push(format!("{}valid = valid.and(&state_changed)?;", put_space(2)));
+    lines.push(format!("{}let state_changed = current_state.is_eq(&next_state)?.not();", put_space(3)));
+    lines.push(format!("{}valid = valid.and(&state_changed)?;", put_space(3)));
 
     // 다음 상태로 업데이트
-    lines.push(format!("{}current_state = next_state;", put_space(2)));
-    lines.push(format!("{}}}", put_space(1)));
+    lines.push(format!("{}current_state = next_state;", put_space(3)));
+    lines.push(format!("{}}}", put_space(2)));
 
     // 수락 상태 확인
     if end_anchor {
-        lines.push(format!("{}// 종료 상태 확인", put_space(1)));
+        lines.push(format!("{}// 종료 상태 확인", put_space(2)));
         let accept_states: Vec<_> = dfa_graph
             .states
             .iter()
@@ -351,21 +279,15 @@ fn generate_state_transition_logic_arkworks(
         for &accept_state in &accept_states {
             lines.push(format!(
                 "{}let is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
-                put_space(2),
+                put_space(3),
                 accept_state
             ));
-            lines.push(format!("{}valid = valid.and(&is_accepting)?;", put_space(2)));
+            lines.push(format!("{}valid = valid.and(&is_accepting)?;", put_space(3)));
         }
     }
 
     lines
 }
-
-/// Returns a string with two spaces for each level of indentation.
-fn put_space(indent_level: usize) -> String {
-    "  ".repeat(indent_level)  // 두 칸의 공백을 indent_level 만큼 반복하여 생성
-}
-
 
 
 /// Calculates the minimum path length from the initial state to any accepting state in the DFA.
@@ -409,18 +331,22 @@ fn calculate_min_length(dfa_graph: &DFAGraph) -> usize {
     dfa_graph.states.len()
 }
 
-
 fn generate_accept_logic_arkworks(
     _dfa_graph: &DFAGraph,
     _end_anchor: bool,
 ) -> Vec<String> {
     vec![
-        "\t\t// Acceptance logic".to_string(),
-        "\t\t// Ensure the final state is an accepting state".to_string(),
-        "\t\tvalid.enforce_equal(&Boolean::constant(true))?;".to_string(),
-        "\t\tOk(())".to_string(),
-        "\t}".to_string(),
+        format!("{}// Acceptance logic", put_space(2)),
+        format!("{}// Ensure the final state is an accepting state", put_space(2)),
+        format!("{}valid.enforce_equal(&Boolean::constant(true))?;", put_space(2)),
+        format!("{}Ok(())", put_space(2)),
+        format!("{}}}", put_space(1)),
         "}".to_string(),
     ]
+}
+
+/// Returns a string with two spaces for each level of indentation.
+fn put_space(indent_level: usize) -> String {
+    "  ".repeat(indent_level)  // 두 칸의 공백을 indent_level 만큼 반복하여 생성
 }
 
