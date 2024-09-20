@@ -6,8 +6,6 @@ pub enum CompilerError {
     FileOpenError(#[from] std::io::Error),
     #[error("Failed to parse JSON: {0}")]
     JsonParseError(#[from] serde_json::Error),
-    #[error("{0}")]
-    GenericError(String),
     #[error(
         "Failed to build DFA for regex: \"{regex}\", please check your regex. Error: {source}"
     )]
@@ -20,6 +18,8 @@ pub enum CompilerError {
     RegexError(#[from] regex::Error),
     #[error("Parse Error: {0}")]
     ParseError(String),
+    #[error("{0}")]
+    GenericError(String),
     #[error("Graph Error: {0}")]
     GraphError(String),
     #[error("No accepted state found in DFA")]

@@ -1,4 +1,5 @@
-use crate::{handlers::{handle_char_class_rule, handle_plus_rule, handle_question_mark_rule, handle_star_rule}, structs::DFAGraph}; // 필요한 struct 임포트
+use crate::structs::DFAGraph;
+
 
 /// Generates the complete Arkworks circuit as a string in Rust.
 pub fn gen_arkworks_allstr(
@@ -13,7 +14,6 @@ pub fn gen_arkworks_allstr(
     let declarations = generate_declarations_arkworks(
         struct_name,
         regex_str,
-        state_len,
         end_anchor,
     );
 
@@ -39,7 +39,6 @@ pub fn gen_arkworks_allstr(
 fn generate_declarations_arkworks(
     struct_name: &str,
     regex_str: &str,
-    state_len: usize,
     _end_anchor: bool,
 ) -> Vec<String> {
     let mut declarations = vec![

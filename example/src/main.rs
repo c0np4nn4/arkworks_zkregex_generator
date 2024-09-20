@@ -20,8 +20,6 @@ fn main() {
         .map(|c| Fr::from(c as u64))  // 각 문자를 u64로 변환
         .collect();
 
-    println!("[example/src/main.rs] input: {:#?}", input);
-
     // Define the circuit with the correct maximum length
     let circuit = RegexCircuit { input: input.clone(), max_len: MAX_LEN };
     println!("[+] Circuit done");
