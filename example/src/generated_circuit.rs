@@ -1,5 +1,4 @@
 use ark_ff::PrimeField;
-use ark_r1cs_std::R1CSVar;
 use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};
 use ark_r1cs_std::fields::FieldVar;
 use ark_r1cs_std::alloc::AllocVar;
@@ -31,33 +30,32 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for RegexCircuit<F> {
     let mut current_state = FpVar::constant(F::from(0u64));
     // 각 입력 인덱스에 대한 전이 로직
     for (index, current_input) in input_vars.iter().enumerate() {
-    // println!("[trace by c0np4nn4] current_state: {:?}", current_state.value());
-
       let is_padded = current_input.is_eq(&FpVar::constant(F::from(0u64)))?;
       let cond_padded = is_padded.not();
       let mut next_state = current_state.clone();
-
+      let mut has_transitioned = Boolean::constant(false);
       let is_state_0 = current_state.is_eq(&FpVar::constant(F::from(0u64)))?;
       let cond_1 = is_state_0.and(&(current_input.is_eq(&FpVar::constant(F::from(97u64)))?))?;
       next_state = cond_1.select(&FpVar::constant(F::from(1u64)), &next_state)?;
-
+      has_transitioned = has_transitioned.or(&cond_1)?;
       let is_state_1 = current_state.is_eq(&FpVar::constant(F::from(1u64)))?;
       let cond_2 = is_state_1.and(&(current_input.is_eq(&FpVar::constant(F::from(98u64)))?.or(&current_input.is_eq(&FpVar::constant(F::from(99u64)))?)?))?;
       next_state = cond_2.select(&FpVar::constant(F::from(2u64)), &next_state)?;
-
+      has_transitioned = has_transitioned.or(&cond_2)?;
       let is_state_2 = current_state.is_eq(&FpVar::constant(F::from(2u64)))?;
       let cond_3 = is_state_2.and(&(current_input.is_eq(&FpVar::constant(F::from(98u64)))?.or(&current_input.is_eq(&FpVar::constant(F::from(99u64)))?)?))?;
       next_state = cond_3.select(&FpVar::constant(F::from(2u64)), &next_state)?;
+      has_transitioned = has_transitioned.or(&cond_3)?;
       let cond_4 = is_state_2.and(&(current_input.is_eq(&FpVar::constant(F::from(100u64)))?))?;
       next_state = cond_4.select(&FpVar::constant(F::from(3u64)), &next_state)?;
-
+      has_transitioned = has_transitioned.or(&cond_4)?;
       let is_state_3 = current_state.is_eq(&FpVar::constant(F::from(3u64)))?;
-      valid = cond_padded.select(&valid.and(&current_state.is_eq(&next_state)?.not())?, &valid)?;
+      let invalid_transition = cond_padded.and(&has_transitioned.not())?;
+      valid = valid.and(&invalid_transition.not())?;
       current_state = next_state;
     }
     // Acceptance logic
-    let mut is_accepting = Boolean::constant(false);
-    is_accepting = is_accepting.or(&current_state.is_eq(&FpVar::constant(F::from(3u64)))?)?;
+    let is_accepting = current_state.is_eq(&FpVar::constant(F::from(3u64)))?;
     valid = valid.and(&is_accepting)?;
     valid.enforce_equal(&Boolean::constant(true))?;
     Ok(())

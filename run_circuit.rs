@@ -73,6 +73,7 @@ impl<F: PrimeField> ConstraintSynthesizer<F> for RegexCircuit<F> {
         // 수용 상태 확인
         let is_accepting = current_state.is_eq(&FpVar::constant(F::from(3u64)))?;
         valid = valid.and(&is_accepting)?;
+
         valid.enforce_equal(&Boolean::constant(true))?;
 
         Ok(())
