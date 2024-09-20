@@ -14,7 +14,8 @@ mod handlers;
 fn main() {
     // Example regex input
     // let regex_str = r"^[a-zA-Z]{2,}\s[a-zA-Z]{1,}'?-?[a-zA-Z]{2,}\s?([a-zA-Z]{1,})?$";
-    let regex_str = r"a[bc]+d";
+    // let regex_str = r"a[bc]+d";
+    let regex_str = r"^[a-zA-Z][0-9]+@gmail\.com$";
 
     // Placeholder SubstringDefinitionsJson; replace with actual data
     let substr_defs_json = SubstringDefinitionsJson {
