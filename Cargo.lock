@@ -780,3 +780,23 @@ dependencies = [
  "quote",
  "syn 2.0.77",
 ]
+
+[[package]]
+name = "zkregex_arkworks_example"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-groth16",
+ "ark-r1cs-std",
+ "ark-relations",
+ "ark-snark",
+ "ark-std",
+ "rand",
+ "regex",
+ "regex-automata",
+ "serde",
+ "serde_json",
+ "thiserror",
+]

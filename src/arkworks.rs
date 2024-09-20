@@ -18,7 +18,7 @@ pub fn gen_arkworks_allstr(
     );
 
     // (2)
-    let init_code = generate_init_code_arkworks(state_len);
+    let init_code = generate_init_code_arkworks(state_len, 256usize);
 
     // (3)
     let transition_logic = generate_state_transition_logic_arkworks(dfa_graph, state_len, end_anchor);
@@ -45,6 +45,7 @@ fn generate_declarations_arkworks(
     let mut declarations = vec![
         "use ark_ff::PrimeField;".to_string(),
         "use ark_relations::r1cs::{ConstraintSynthesizer, ConstraintSystemRef, SynthesisError};".to_string(),
+        "use ark_r1cs_std::fields::FieldVar;".to_string(),
         "use ark_r1cs_std::alloc::AllocVar;".to_string(),
         "use ark_r1cs_std::boolean::Boolean;".to_string(),
         "use ark_r1cs_std::fields::fp::FpVar;".to_string(),
@@ -64,10 +65,12 @@ fn generate_declarations_arkworks(
     declarations
 }
 
-fn generate_init_code_arkworks(state_len: usize) -> Vec<String> {
+fn generate_init_code_arkworks(state_len: usize, max_len: usize) -> Vec<String> {
     vec![
-        "\t\t// Initialize input variables".to_string(),
-        "\t\tlet input_vars = self.input".to_string(),
+        "\t\t// Initialize and pad input variables".to_string(),
+        "\t\tlet mut padded_input = self.input.clone();".to_string(),
+        format!("\t\tpadded_input.resize({}, F::from(0u64));", max_len),
+        "\t\tlet input_vars = padded_input".to_string(),
         "\t\t\t.into_iter()".to_string(),
         "\t\t\t.map(|v| FpVar::new_input(cs.clone(), || Ok(v)))".to_string(),
         "\t\t\t.collect::<Result<Vec<_>, _>>()?;".to_string(),
@@ -77,6 +80,7 @@ fn generate_init_code_arkworks(state_len: usize) -> Vec<String> {
     ]
 }
 
+// /// Generates the state transition logic for the Arkworks circuit in Rust.
 // fn generate_state_transition_logic_arkworks(
 //     dfa_graph: &DFAGraph,
 //     _state_len: usize,
@@ -84,93 +88,175 @@ fn generate_init_code_arkworks(state_len: usize) -> Vec<String> {
 // ) -> Vec<String> {
 //     let mut lines = vec![];
 
-//     // Calculate the minimum length based on the shortest path from the initial state to any accept state
-//     let min_length = calculate_min_length(&dfa_graph);
-//     let max_length = dfa_graph.states.len(); // 기본적으로 DFA의 모든 상태 수를 최대 길이로 설정
+//     // 현재 상태 변수 초기화 (초기 상태는 DFA의 시작 상태, 일반적으로 state_id 0)
+//     lines.push("\t\t// 현재 상태 초기화".to_string());
+//     lines.push("\t\tlet mut current_state = FpVar::constant(F::from(0u64));".to_string()); // 초기 상태 설정
 
-//     lines.push(format!(
-//         "\t\tif input_vars.len() < {} || input_vars.len() > {} {{",
-//         min_length, max_length
-//     ));
-//     lines.push("\t\t\tvalid = Boolean::constant(false);".to_string());
-//     lines.push("\t\t} else {".to_string());
+//     // 기본 상태 전이 로직을 추가
+//     lines.push("\t\t// 각 입력 인덱스에 대한 전이 로직".to_string());
+//     lines.push("\t\tfor current_input in input_vars.iter() {".to_string());
+//     lines.push("\t\t\tlet mut next_state = current_state.clone();".to_string());
 
-//     // Initialize states: Start from the initial state (assumed to be state 0)
-//     lines.push("\t\t\tlet mut current_state = FpVar::constant(F::from(0u64));".to_string());
-//     lines.push("".to_string());
+//     // DFA 그래프에서 각 상태와 전이에 대해 로직 생성
+//     let mut condition_counter = 0; // 고유한 조건 변수명을 만들기 위한 카운터
+//     for state in &dfa_graph.states {
+//         let from_state = state.state_id;
 
-//     // Iterate over the input variables and generate transition logic
-//     for i in 0..max_length {
-//         lines.push(format!("\t\t\t// Transition logic for input index {}", i));
-//         lines.push(format!("\t\t\tif input_vars.len() > {} {{", i));
-//         lines.push(format!("\t\t\t\tlet current_input = &input_vars[{}];", i));
+//         // 현재 상태 조건 추가
+//         lines.push(format!(
+//             "\t\t\tlet is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//             from_state, from_state
+//         ));
 
-//         // Generate transition logic based on DFA graph for each state
-//         lines.push("\t\t\t\tlet mut next_state = None;".to_string());
+//         for (&to_state, char_set) in &state.transitions {
+//             // 각 문자의 조건을 추가 (변수명 중복 방지를 위해 고유한 이름 부여)
+//             condition_counter += 1;
+//             let condition_var = format!("cond_{}", condition_counter);
 
-//         // For each state, define transitions based on the DFA graph
-//         for state in &dfa_graph.states {
-//             let from_state = state.state_id;
-//             for (&to_state, char_set) in &state.transitions {
-//                 // Create transition checks for each edge
-//                 for &byte in char_set {
-//                     lines.push(format!(
-//                         "\t\t\t\tif current_state.is_eq(&FpVar::constant(F::from({}u64)))? && current_input.is_eq(&FpVar::constant(F::from({}u64)))? {{",
-//                         from_state, byte
-//                     ));
-//                     lines.push(format!(
-//                         "\t\t\t\t\tnext_state = Some(FpVar::constant(F::from({}u64)));",
-//                         to_state
-//                     ));
-//                     lines.push("\t\t\t\t}".to_string());
-//                 }
-//             }
-//         }
-
-//         // Update the current state if a valid transition exists
-//         lines.push("\t\t\t\tif let Some(next) = next_state {".to_string());
-//         lines.push("\t\t\t\t\tcurrent_state = next;".to_string());
-//         lines.push("\t\t\t\t} else {".to_string());
-//         lines.push("\t\t\t\t\tvalid = Boolean::constant(false);".to_string());
-//         lines.push("\t\t\t\t}".to_string());
-
-//         lines.push("\t\t\t}".to_string());
-//         lines.push("".to_string());
-//     }
-
-//     // Check final state acceptance if end anchor is required
-//     if end_anchor {
-//         lines.push("\t\t\t// Check if the final state is an accepting state with end anchor".to_string());
-//         let accept_states: Vec<_> = dfa_graph.states.iter()
-//             .filter(|s| s.state_type == "accept")
-//             .map(|s| s.state_id)
-//             .collect();
-//         for &accept_state in &accept_states {
+//             let conditions = char_set
+//                 .iter()
+//                 .map(|&c| format!("current_input.is_eq(&FpVar::constant(F::from({}u64)))?", c))
+//                 .collect::<Vec<_>>()
+//                 .join(" || ");
+//             
 //             lines.push(format!(
-//                 "\t\t\tvalid = valid.and(&current_state.is_eq(&FpVar::constant(F::from({}u64)))?)?;",
-//                 accept_state
+//                 "\t\t\tlet {} = is_state_{}.and(&({}))?;", 
+//                 condition_var, from_state, conditions
+//             ));
+
+//             // 상태 전이 로직 추가
+//             lines.push(format!(
+//                 "\t\t\tnext_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
+//                 condition_var, to_state
 //             ));
 //         }
-//     } else {
-//         lines.push("\t\t\t// No end anchor, check any valid accepting state".to_string());
-//         let accept_states: Vec<_> = dfa_graph.states.iter()
-//             .filter(|s| s.state_type == "accept")
-//             .map(|s| s.state_id)
-//             .collect();
-//         lines.push("\t\t\tlet mut is_accepting = Boolean::constant(false);".to_string());
-//         for &accept_state in &accept_states {
-//             lines.push(format!(
-//                 "\t\t\tis_accepting = is_accepting.or(&current_state.is_eq(&FpVar::constant(F::from({}u64)))?)?;",
-//                 accept_state
-//             ));
-//         }
-//         lines.push("\t\t\tvalid = valid.and(&is_accepting)?;".to_string());
 //     }
 
+//     // 상태가 변경되었는지 확인
+//     lines.push("\t\t\tlet state_changed = current_state.is_eq(&next_state)?.not();".to_string());
+//     lines.push("\t\t\tvalid = valid.and(&state_changed)?;".to_string());
+
+//     // 다음 상태로 업데이트
+//     lines.push("\t\t\tcurrent_state = next_state;".to_string());
 //     lines.push("\t\t}".to_string());
+
+//     // 수락 상태 확인
+//     if end_anchor {
+//         lines.push("\t\t// 종료 상태 확인".to_string());
+//         let accept_states: Vec<_> = dfa_graph
+//             .states
+//             .iter()
+//             .filter(|s| s.state_type == "accept")
+//             .map(|s| s.state_id)
+//             .collect();
+
+//         for &accept_state in &accept_states {
+//             lines.push(format!(
+//                 "\t\tlet is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//                 accept_state
+//             ));
+//             lines.push("\t\tvalid = valid.and(&is_accepting)?;".to_string());
+//         }
+//     }
+
 //     lines
 // }
 
+
+// /// Generates the state transition logic for the Arkworks circuit in Rust.
+// fn generate_state_transition_logic_arkworks(
+//     dfa_graph: &DFAGraph,
+//     _state_len: usize,
+//     end_anchor: bool,
+// ) -> Vec<String> {
+//     let mut lines = vec![];
+
+//     // 기본 상태 전이 로직을 추가
+//     lines.push("\t\t// 각 입력 인덱스에 대한 전이 로직".to_string());
+//     lines.push("\t\tfor current_input in input_vars.iter() {".to_string());
+//     lines.push("\t\t\tlet mut next_state = current_state.clone();".to_string());
+
+//     // DFA 그래프에서 각 상태와 전이에 대해 로직 생성
+//     let mut condition_counter = 0; // 고유한 조건 변수명을 만들기 위한 카운터
+//     for state in &dfa_graph.states {
+//         let from_state = state.state_id;
+
+//         // 현재 상태 조건 추가
+//         lines.push(format!(
+//             "\t\t\tlet is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//             from_state, from_state
+//         ));
+
+//         for (&to_state, char_set) in &state.transitions {
+//             // 각 문자의 조건을 추가 (변수명 중복 방지를 위해 고유한 이름 부여)
+//             condition_counter += 1;
+//             let condition_var = format!("cond_{}", condition_counter);
+
+//             // 논리적 OR 처리를 위해 Arkworks 메서드 사용
+//             let conditions = char_set
+//                 .iter()
+//                 .map(|&c| format!("current_input.is_eq(&FpVar::constant(F::from({}u64)))?", c))
+//                 .collect::<Vec<_>>();
+
+//             // 여러 조건을 하나로 합치는 논리 연산 처리
+//             let or_conditions = if conditions.len() > 1 {
+//                 let mut combined_condition = format!("{}{}", conditions[0], "?");
+//                 for condition in &conditions[1..] {
+//                     combined_condition = format!(
+//                         "{}.or(&{}?)?", 
+//                         combined_condition, 
+//                         condition
+//                     );
+//                 }
+//                 combined_condition
+//             } else {
+//                 conditions[0].clone() // 하나의 조건일 때는 그냥 조건 그대로 사용
+//             };
+
+//             lines.push(format!(
+//                 "\t\t\tlet {} = is_state_{}.and(&({}))?;", 
+//                 condition_var, from_state, or_conditions
+//             ));
+
+//             // 상태 전이 로직 추가
+//             lines.push(format!(
+//                 "\t\t\tnext_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
+//                 condition_var, to_state
+//             ));
+//         }
+//     }
+
+//     // 상태가 변경되었는지 확인
+//     lines.push("\t\t\tlet state_changed = current_state.is_eq(&next_state)?.not();".to_string());
+//     lines.push("\t\t\tvalid = valid.and(&state_changed)?;".to_string());
+
+//     // 다음 상태로 업데이트
+//     lines.push("\t\t\tcurrent_state = next_state;".to_string());
+//     lines.push("\t\t}".to_string());
+
+//     // 수락 상태 확인
+//     if end_anchor {
+//         lines.push("\t\t// 종료 상태 확인".to_string());
+//         let accept_states: Vec<_> = dfa_graph
+//             .states
+//             .iter()
+//             .filter(|s| s.state_type == "accept")
+//             .map(|s| s.state_id)
+//             .collect();
+
+//         for &accept_state in &accept_states {
+//             lines.push(format!(
+//                 "\t\tlet is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+//                 accept_state
+//             ));
+//             lines.push("\t\tvalid = valid.and(&is_accepting)?;".to_string());
+//         }
+//     }
+
+//     lines
+// }
+
+/// Generates the state transition logic for the Arkworks circuit in Rust.
 fn generate_state_transition_logic_arkworks(
     dfa_graph: &DFAGraph,
     _state_len: usize,
@@ -178,90 +264,109 @@ fn generate_state_transition_logic_arkworks(
 ) -> Vec<String> {
     let mut lines = vec![];
 
-    // Calculate the minimum length based on the shortest path from the initial state to any accept state
-    let min_length = calculate_min_length(&dfa_graph);
-    let max_length = dfa_graph.states.len(); // 기본적으로 DFA의 모든 상태 수를 최대 길이로 설정
+    // 현재 상태 변수 초기화 (초기 상태는 DFA의 시작 상태, 일반적으로 state_id 0)
+    lines.push(format!("{}// 현재 상태 초기화", put_space(1)));
+    lines.push(format!("{}let mut current_state = FpVar::constant(F::from(0u64));", put_space(1))); // 초기 상태 설정
 
-    lines.push(format!(
-        "\t\tif input_vars.len() < {} || input_vars.len() > {} {{",
-        min_length, max_length
-    ));
-    lines.push("\t\t\tvalid = Boolean::constant(false);".to_string());
-    lines.push("\t\t} else {".to_string());
+    // 기본 상태 전이 로직을 추가
+    lines.push(format!("{}// 각 입력 인덱스에 대한 전이 로직", put_space(1)));
+    lines.push(format!("{}for current_input in input_vars.iter() {{", put_space(1)));
+    lines.push(format!("{}let mut next_state = current_state.clone();", put_space(2)));
 
-    // Initialize states: Start from the initial state (assumed to be state 0)
-    lines.push("\t\t\tlet mut current_state = FpVar::constant(F::from(0u64));".to_string());
-    lines.push("".to_string());
+    // DFA 그래프에서 각 상태와 전이에 대해 로직 생성
+    let mut condition_counter = 0; // 고유한 조건 변수명을 만들기 위한 카운터
+    for state in &dfa_graph.states {
+        let from_state = state.state_id;
 
-    // Iterate over the input variables and generate transition logic
-    for i in 0..max_length {
-        lines.push(format!("\t\t\t// Transition logic for input index {}", i));
-        lines.push(format!("\t\t\tif input_vars.len() > {} {{", i));
-        lines.push(format!("\t\t\t\tlet current_input = &input_vars[{}];", i));
+        // 현재 상태 조건 추가
+        lines.push(format!(
+            "{}let is_state_{} = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+            put_space(2),
+            from_state,
+            from_state
+        ));
 
-        // Generate transition logic based on DFA graph for each state
-        lines.push("\t\t\t\tlet mut next_state = None;".to_string());
+        for (&to_state, char_set) in &state.transitions {
+            // 각 문자의 조건을 추가 (변수명 중복 방지를 위해 고유한 이름 부여)
+            condition_counter += 1;
+            let condition_var = format!("cond_{}", condition_counter);
 
-        // For each state, define transitions based on the DFA graph
-        for state in &dfa_graph.states {
-            let from_state = state.state_id;
-            for (&to_state, char_set) in &state.transitions {
-                // Decide which rule applies and call the corresponding helper function
-                if char_set.contains(&b'+') {
-                    lines.extend(handle_plus_rule(from_state, to_state, char_set));
-                } else if char_set.contains(&b'*') {
-                    lines.extend(handle_star_rule(from_state, to_state, char_set));
-                } else if char_set.contains(&b'?') {
-                    lines.extend(handle_question_mark_rule(from_state, to_state, char_set));
-                } else {
-                    lines.extend(handle_char_class_rule(from_state, to_state, char_set));
+            // 논리적 OR 처리를 위해 Arkworks 메서드 사용
+            let conditions = char_set
+                .iter()
+                .map(|&c| format!("current_input.is_eq(&FpVar::constant(F::from({}u64)))?", c))
+                .collect::<Vec<_>>();
+
+            // 여러 조건을 하나로 합치는 논리 연산 처리
+            let or_conditions = if conditions.len() > 1 {
+                let mut combined_condition = format!("{}", conditions[0]);
+                for condition in &conditions[1..] {
+                    combined_condition = format!(
+                        "{}.or({})?", 
+                        combined_condition, 
+                        condition
+                    );
                 }
-            }
+                combined_condition
+            } else {
+                conditions[0].clone() // 하나의 조건일 때는 그냥 조건 그대로 사용
+            };
+
+            lines.push(format!(
+                "{}let {} = is_state_{}.and(&({}))?;", 
+                put_space(2),
+                condition_var, 
+                from_state, 
+                or_conditions
+            ));
+
+            // 상태 전이 로직 추가
+            lines.push(format!(
+                "{}next_state = {}.select(&FpVar::constant(F::from({}u64)), &next_state)?;",
+                put_space(2),
+                condition_var,
+                to_state
+            ));
         }
-
-        // Update the current state if a valid transition exists
-        lines.push("\t\t\t\tif let Some(next) = next_state {".to_string());
-        lines.push("\t\t\t\t\tcurrent_state = next;".to_string());
-        lines.push("\t\t\t\t} else {".to_string());
-        lines.push("\t\t\t\t\tvalid = Boolean::constant(false);".to_string());
-        lines.push("\t\t\t\t}".to_string());
-
-        lines.push("\t\t\t}".to_string());
-        lines.push("".to_string());
     }
 
-    // Check final state acceptance if end anchor is required
+    // 상태가 변경되었는지 확인
+    lines.push(format!("{}let state_changed = current_state.is_eq(&next_state)?.not();", put_space(2)));
+    lines.push(format!("{}valid = valid.and(&state_changed)?;", put_space(2)));
+
+    // 다음 상태로 업데이트
+    lines.push(format!("{}current_state = next_state;", put_space(2)));
+    lines.push(format!("{}}}", put_space(1)));
+
+    // 수락 상태 확인
     if end_anchor {
-        lines.push("\t\t\t// Check if the final state is an accepting state with end anchor".to_string());
-        let accept_states: Vec<_> = dfa_graph.states.iter()
+        lines.push(format!("{}// 종료 상태 확인", put_space(1)));
+        let accept_states: Vec<_> = dfa_graph
+            .states
+            .iter()
             .filter(|s| s.state_type == "accept")
             .map(|s| s.state_id)
             .collect();
+
         for &accept_state in &accept_states {
             lines.push(format!(
-                "\t\t\tvalid = valid.and(&current_state.is_eq(&FpVar::constant(F::from({}u64)))?)?;",
+                "{}let is_accepting = current_state.is_eq(&FpVar::constant(F::from({}u64)))?;",
+                put_space(2),
                 accept_state
             ));
+            lines.push(format!("{}valid = valid.and(&is_accepting)?;", put_space(2)));
         }
-    } else {
-        lines.push("\t\t\t// No end anchor, check any valid accepting state".to_string());
-        let accept_states: Vec<_> = dfa_graph.states.iter()
-            .filter(|s| s.state_type == "accept")
-            .map(|s| s.state_id)
-            .collect();
-        lines.push("\t\t\tlet mut is_accepting = Boolean::constant(false);".to_string());
-        for &accept_state in &accept_states {
-            lines.push(format!(
-                "\t\t\tis_accepting = is_accepting.or(&current_state.is_eq(&FpVar::constant(F::from({}u64)))?)?;",
-                accept_state
-            ));
-        }
-        lines.push("\t\t\tvalid = valid.and(&is_accepting)?;".to_string());
     }
 
-    lines.push("\t\t}".to_string());
     lines
 }
+
+/// Returns a string with two spaces for each level of indentation.
+fn put_space(indent_level: usize) -> String {
+    "  ".repeat(indent_level)  // 두 칸의 공백을 indent_level 만큼 반복하여 생성
+}
+
+
 
 /// Calculates the minimum path length from the initial state to any accepting state in the DFA.
 ///
