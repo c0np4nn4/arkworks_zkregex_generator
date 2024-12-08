@@ -1,0 +1,33 @@
+   Compiling zkregex_arkworks_example v0.1.0 (/Users/aaron/aaron/repo/arkworks_regex_circuit/example)
+warning: unused variable: `index`
+  --> example/src/generated_circuit.rs:32:10
+   |
+32 |     for (index, current_input) in input_vars.iter().enumerate() {
+   |          ^^^^^ help: if this is intentional, prefix it with an underscore: `_index`
+   |
+   = note: `#[warn(unused_variables)]` on by default
+
+warning: unused variable: `is_state_10`
+  --> example/src/generated_circuit.rs:88:11
+   |
+88 |       let is_state_10 = current_state.is_eq(&FpVar::constant(F::from(10u64)))?;
+   |           ^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_is_state_10`
+
+warning: field `max_len` is never read
+  --> example/src/generated_circuit.rs:13:7
+   |
+11 | pub struct RegexCircuit<F: PrimeField> {
+   |            ------------ field in this struct
+12 |   pub input: Vec<F>,
+13 |   pub max_len: usize,
+   |       ^^^^^^^
+   |
+   = note: `RegexCircuit` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` on by default
+
+warning: `zkregex_arkworks_example` (bin "zkregex_arkworks_example") generated 3 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.70s
+     Running `target/debug/zkregex_arkworks_example`
+Enter string to check: [+] Circuit done
+Command terminated by signal 2
+1.70
